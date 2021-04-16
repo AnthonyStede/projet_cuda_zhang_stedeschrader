@@ -18,7 +18,7 @@ using namespace cv;
 
 __constant__ int templates[MASK_WIDTH*MASK_WIDTH]; // Allocate constant memory  
 
-__global__ void gaussianFilter(uchar *d_in, uchar *d_out, int width, int height)
+__global__ void Gaussian(uchar *d_in, uchar *d_out, int width, int height)
 {
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -47,7 +47,7 @@ __global__ void gaussianFilter(uchar *d_in, uchar *d_out, int width, int height)
 int main()
 {
 
-	Mat srcImg = imread("D:\\pictures\\lena.jpg");
+	Mat srcImg = imread("D:\\1.jpg");
 	Mat src; //   
 	cvtColor(srcImg, src, CV_BGR2GRAY); // Convert to grayscale image
 
@@ -83,12 +83,12 @@ int main()
 	dim3 block(BLOCKDIM_X, BLOCKDIM_Y);//The structure of the block
 
 	//kernel--Gaussian filtering
-	gaussianFilter << <grid, block >> >(d_in, d_out, width, height);
+	Gaussian << <grid, block >> >(d_in, d_out, width, height);
 
 	cudaMemcpy(src.data, d_out, memsize, cudaMemcpyDeviceToHost);// Data is sent back to the host
 
 	imshow("cuda_gaussian", src);
-	imwrite("D:/gaussian.jpg", src);
+	imwrite("D:/Gaussian.jpg", src);
 
 	cudaFree(d_in);
 	cudaFree(d_out);
