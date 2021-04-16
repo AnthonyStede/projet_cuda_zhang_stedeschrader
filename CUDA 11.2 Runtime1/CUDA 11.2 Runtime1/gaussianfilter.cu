@@ -56,8 +56,8 @@ int main()
 	uchar *d_in;
 	uchar *d_out;
 
-	int width = srcImg.cols;
-	int height = srcImg.rows;
+	int width = srcImg.rows;
+	int height = srcImg.cols;
 
 	int memsize = width*height*sizeof(uchar);
 
