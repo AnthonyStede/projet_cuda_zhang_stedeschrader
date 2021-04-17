@@ -119,7 +119,7 @@ void resizeImageGpu(const Mat &_src, Mat &_dst, const Size &s)
 
 int main()
 {
-	Mat src = cv::imread("E:\\1.jpg", 1);
+	Mat src = cv::imread("1.jpg", 1);
 	Mat dst_cpu;
 
 	imshow("Origin", src);

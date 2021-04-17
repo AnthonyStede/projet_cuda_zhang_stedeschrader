@@ -60,7 +60,7 @@ void sobel(Mat srcImg, Mat dstImg, int imgHeight, int imgWidth)
 
 int main()
 {
-	Mat grayImg = imread("E:\\1.jpg",0);
+	Mat grayImg = imread("1.jpg",0);
 
 	int imgHeight = grayImg.rows;
 	int imgWidth = grayImg.cols;

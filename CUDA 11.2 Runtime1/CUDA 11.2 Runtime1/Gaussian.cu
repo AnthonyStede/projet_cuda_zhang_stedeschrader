@@ -51,7 +51,7 @@ __global__ void GaussianFilter(uchar *d_in, uchar *d_out, int width, int height)
 int main()
 {
 
-	Mat srcImg = imread("E:\\1.jpg");
+	Mat srcImg = imread("1.jpg");
 	Mat src; 
 	cvtColor(srcImg, src, CV_BGR2GRAY); // Convert to grayscale image
 
