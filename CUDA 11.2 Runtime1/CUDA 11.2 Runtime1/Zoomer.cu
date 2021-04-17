@@ -5,9 +5,14 @@
 #include <vector>
 #include <cstring>
 
+#include <device_launch_parameters.h>
+
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+
 
 using namespace cv;
 using namespace std;
@@ -70,8 +75,8 @@ __global__ void kernel(uchar* _src_dev, uchar * _dst_dev, int _src_step, int _ds
 	double fRows = _dst_rows / (float)_src_rows;
 	double fCols = _dst_cols / (float)_src_cols;
 
-	int pX = 0;
-	int pY = 0;
+	auto pX = 0;
+	auto pY = 0;
 
 	pX = (int)(i / fRows);
 	pY = (int)(j / fCols);
@@ -88,9 +93,9 @@ __global__ void kernel(uchar* _src_dev, uchar * _dst_dev, int _src_step, int _ds
 void resizeImageGpu(const Mat &_src, Mat &_dst, const Size &s)
 {
 	_dst = Mat(s, CV_8UC3);
-	uchar *src_data = _src.data;
-	int width = _src.cols;
-	int height = _src.rows;
+	uchar *src_data = _src.data; 
+	auto width = _src.cols;
+	auto height = _src.rows;
 	uchar *src_dev, *dst_dev;
 
 	cudaMalloc((void**)&src_dev, 3 * width*height * sizeof(uchar));
@@ -99,11 +104,12 @@ void resizeImageGpu(const Mat &_src, Mat &_dst, const Size &s)
 
 	double fRows = s.height / (float)_src.rows;
 	double fCols = s.width / (float)_src.cols;
-	int src_step = _src.step;
-	int dst_step = _dst.step;
+	auto src_step = _src.step;
+	auto dst_step = _dst.step;
 
 	dim3 grid(s.height, s.width);
-	kernel << < grid, 1 >> > (src_dev, dst_dev, src_step, dst_step, height, width, s.height, s.width);
+	dim3 block(32, 32);
+	kernel<<< grid, block >>> (src_dev, dst_dev, src_step, dst_step, height, width, s.height, s.width);
 
 	cudaMemcpy(_dst.data, dst_dev, 3 * s.width * s.height * sizeof(uchar), cudaMemcpyDeviceToHost);
 
@@ -113,8 +119,10 @@ void resizeImageGpu(const Mat &_src, Mat &_dst, const Size &s)
 
 int main()
 {
-	Mat src = cv::imread("E:\\123\\test\\lena.bmp", 1);
+	Mat src = cv::imread("E:\\1.jpg", 1);
 	Mat dst_cpu;
+
+	imshow("Origin", src);
 
 	double start = GetTickCount();
 	resizeImage(src, dst_cpu, Size(src.cols * 2, src.rows * 2));
@@ -131,7 +139,7 @@ int main()
 	end = GetTickCount();
 	cout << "gpu cost time£º" << end - start << "\n";
 
-	cv::imshow("Demo", dst_cpu);
+	cv::imshow("Zoom", dst_cpu);
 	waitKey(0);
 
 	return 0;

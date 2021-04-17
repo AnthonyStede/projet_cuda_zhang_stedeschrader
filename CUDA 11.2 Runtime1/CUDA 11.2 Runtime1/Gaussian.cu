@@ -4,6 +4,8 @@
 #include"cuda_runtime.h"
 #include"iostream"
 #include <math.h>
+#include <device_launch_parameters.h>
+#include <opencv2\imgproc\types_c.h>
 
 using namespace std;
 using namespace cv;
@@ -18,7 +20,7 @@ using namespace cv;
 
 __constant__ int templates[MASK_WIDTH*MASK_WIDTH]; // Allocate constant memory  
 
-__global__ void Gaussian(uchar *d_in, uchar *d_out, int width, int height)
+__global__ void GaussianFilter(uchar *d_in, uchar *d_out, int width, int height)
 {
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -26,29 +28,31 @@ __global__ void Gaussian(uchar *d_in, uchar *d_out, int width, int height)
 	int sum = 0;
 	int index = 0;
 
-	if (tidx>2 && tidx<width - 2 && tidy>2 && tidy<height - 2)
-
-	for (int m = tidx - 2; m < tidx + 3; m++)
-	{
-		for (int n = tidy - 2; n < tidy + 3; n++)
+	if (tidx > 2 && tidx < width - 2 && tidy>2 && tidy < height - 2) {
+		for (int m = tidx - 2; m < tidx + 3; m++)
 		{
-			sum += d_in[m*width + n] * templates[index++];
+			for (int n = tidy - 2; n < tidy + 3; n++)
+			{
+				sum += d_in[m*width + n] * templates[index++];
+			}
+		}
+		if (sum / 273 < 0) {
+			*(d_out + (tidx)*width + tidy) = 0;
+		}
+		else if (sum / 273 > 255) {
+			*(d_out + (tidx)*width + tidy) = 255;
+		}
+		else {
+			*(d_out + (tidx)*width + tidy) = sum / 273;
 		}
 	}
-	if (sum / 273<0)
-		*(d_out + (tidx)*width + tidy) = 0;
-	else if (sum / 273>255)
-		*(d_out + (tidx)*width + tidy) = 255;
-	else
-		*(d_out + (tidx)*width + tidy) = sum / 273;
-
 }
 
 int main()
 {
 
-	Mat srcImg = imread("D:\\1.jpg");
-	Mat src; //   
+	Mat srcImg = imread("E:\\1.jpg");
+	Mat src; 
 	cvtColor(srcImg, src, CV_BGR2GRAY); // Convert to grayscale image
 
 	imshow("src_image", src);
@@ -56,8 +60,8 @@ int main()
 	uchar *d_in;
 	uchar *d_out;
 
-	int width = srcImg.rows;
-	int height = srcImg.cols;
+	int width = srcImg.cols;
+	int height = srcImg.rows;
 
 	int memsize = width*height*sizeof(uchar);
 
@@ -83,12 +87,11 @@ int main()
 	dim3 block(BLOCKDIM_X, BLOCKDIM_Y);//The structure of the block
 
 	//kernel--Gaussian filtering
-	Gaussian << <grid, block >> >(d_in, d_out, width, height);
+	GaussianFilter <<< grid, block >>> (d_in, d_out, width, height);
 
 	cudaMemcpy(src.data, d_out, memsize, cudaMemcpyDeviceToHost);// Data is sent back to the host
 
 	imshow("cuda_gaussian", src);
-	imwrite("D:/Gaussian.jpg", src);
 
 	cudaFree(d_in);
 	cudaFree(d_out);
