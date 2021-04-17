@@ -20,7 +20,7 @@ using namespace cv;
 
 __constant__ int templates[MASK_WIDTH*MASK_WIDTH]; // Allocate constant memory  
 
-__global__ void GaussianFilter(uchar *d_in, uchar *d_out, int width, int height)
+__global__ void GaussianFilter(uchar *d_in, uchar *d_out, int height, int width)
 {
 	int tidx = blockDim.x * blockIdx.x + threadIdx.x;
 	int tidy = blockDim.y * blockIdx.y + threadIdx.y;
@@ -60,8 +60,8 @@ int main()
 	uchar *d_in;
 	uchar *d_out;
 
-	int width = srcImg.cols;
-	int height = srcImg.rows;
+	int width = srcImg.rows;
+	int height = srcImg.cols;
 
 	int memsize = width*height*sizeof(uchar);
 
