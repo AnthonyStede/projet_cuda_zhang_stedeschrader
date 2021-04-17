@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.271
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CUDA 11.2 Runtime1", "CUDA 11.2 Runtime1\CUDA 11.2 Runtime1.vcxproj", "{B1C3D42D-4FC1-4CC3-87BB-41369C034335}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7C9604C8-E29C-4B0A-BBC9-0FEFF96C33C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
