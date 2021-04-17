@@ -1,6 +1,6 @@
 #include "cuda_runtime.h"
 
-#include <windows.h>   
+#include <windows.h>
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -17,130 +17,52 @@
 using namespace cv;
 using namespace std;
 
-void resizeImage(const Mat &_src, Mat &_dst, const Size &s)
-{
-	_dst = Mat::zeros(s, CV_8UC3);
-	double fRows = s.height / (float)_src.rows;
-	double fCols = s.width / (float)_src.cols;
-	int pX = 0;
-	int pY = 0;
-	for (int i = 0; i != _dst.rows; ++i) {
-		for (int j = 0; j != _dst.cols; ++j) {
-			pX = cvRound(i / (double)fRows);
-			pY = cvRound(j / (double)fCols);
-			if (pX < _src.rows && pX >= 0 && pY < _src.cols && pY >= 0) {
-				_dst.at<Vec3b>(i, j)[0] = _src.at<Vec3b>(pX, pY)[0];
-				_dst.at<Vec3b>(i, j)[1] = _src.at<Vec3b>(pX, pY)[1];
-				_dst.at<Vec3b>(i, j)[2] = _src.at<Vec3b>(pX, pY)[2];
-			}
-		}
-	}
+__global__ void Histogram_CUDA(unsigned char* Image, int* Histogram);
+
+void Histogram_Calculation_CUDA(unsigned char* Image, int Height, int Width, int Channels, int* Histogram){
+	unsigned char* Dev_Image = NULL;
+	int* Dev_Histogram = NULL;
+
+	cudaMalloc((void**)&Dev_Image, Height * Width * Channels);
+	cudaMalloc((void**)&Dev_Histogram, 256 * sizeof(int));
+
+	cudaMemcpy(Dev_Image, Image, Height * Width * Channels, cudaMemcpyHostToDevice);
+	cudaMemcpy(Dev_Histogram, Histogram, 256 * sizeof(int), cudaMemcpyHostToDevice);
+
+	dim3 Grid_Image(Width, Height);
+	Histogram_CUDA << <Grid_Image, 1 >> >(Dev_Image, Dev_Histogram);
+
+	cudaMemcpy(Histogram, Dev_Histogram, 256 * sizeof(int), cudaMemcpyDeviceToHost);
+
+	cudaFree(Dev_Histogram);
+	cudaFree(Dev_Image);
 }
 
-bool initCUDA()
-{
-	int count;
-	cudaGetDeviceCount(&count);
-	if (count == 0) {
-		fprintf(stderr, "There is no device.\n");
-		return false;
-	}
+__global__ void Histogram_CUDA(unsigned char* Image, int* Histogram){
+	int x = blockIdx.x;
+	int y = blockIdx.y;
 
-	int i;
-	for (i = 0; i < count; i++) {
-		cudaDeviceProp prop;
-		if (cudaGetDeviceProperties(&prop, i) == cudaSuccess) {
-			if (prop.major >= 1) {
-				break;
-			}
-		}
-	}
+	int Image_Idx = x + y * gridDim.x;
 
-	if (i == count) {
-		fprintf(stderr, "There is no device supporting CUDA 1.x.\n");
-		return false;
-	}
-
-	cudaSetDevice(i);
-	return true;
-}
-
-
-__global__ void kernel(uchar* _src_dev, uchar * _dst_dev, int _src_step, int _dst_step,
-	int _src_rows, int _src_cols, int _dst_rows, int _dst_cols)
-{
-	auto i = blockIdx.x;
-	auto j = blockIdx.y;
-
-	double fRows = _dst_rows / (float)_src_rows;
-	double fCols = _dst_cols / (float)_src_cols;
-
-	auto pX = 0;
-	auto pY = 0;
-
-	pX = (int)(i / fRows);
-	pY = (int)(j / fCols);
-	if (pX < _src_rows && pX >= 0 && pY < _src_cols && pY >= 0) {
-		*(_dst_dev + i * _dst_step + 3 * j + 0) = *(_src_dev + pX * _src_step + 3 * pY);
-		*(_dst_dev + i * _dst_step + 3 * j + 1) = *(_src_dev + pX * _src_step + 3 * pY + 1);
-		*(_dst_dev + i * _dst_step + 3 * j + 2) = *(_src_dev + pX * _src_step + 3 * pY + 2);
-
-	}
-
-}
-
-
-void resizeImageGpu(const Mat &_src, Mat &_dst, const Size &s)
-{
-	_dst = Mat(s, CV_8UC3);
-	uchar *src_data = _src.data; 
-	auto width = _src.cols;
-	auto height = _src.rows;
-	uchar *src_dev, *dst_dev;
-
-	cudaMalloc((void**)&src_dev, 3 * width*height * sizeof(uchar));
-	cudaMalloc((void**)&dst_dev, 3 * s.width * s.height * sizeof(uchar));
-	cudaMemcpy(src_dev, src_data, 3 * width*height * sizeof(uchar), cudaMemcpyHostToDevice);
-
-	double fRows = s.height / (float)_src.rows;
-	double fCols = s.width / (float)_src.cols;
-	auto src_step = _src.step;
-	auto dst_step = _dst.step;
-
-	dim3 grid(s.height, s.width);
-	dim3 block(32, 32);
-	kernel<<< grid, block >>> (src_dev, dst_dev, src_step, dst_step, height, width, s.height, s.width);
-
-	cudaMemcpy(_dst.data, dst_dev, 3 * s.width * s.height * sizeof(uchar), cudaMemcpyDeviceToHost);
-
-
+	atomicAdd(&Histogram[Image[Image_Idx]], 1);
 }
 
 
 int main()
 {
-	Mat src = cv::imread("1.jpg", 1);
-	Mat dst_cpu;
+	Mat Input_Image = imread("1.jpg", 0);
 
-	imshow("Origin", src);
+	cout << "Image Height: " << Input_Image.rows << ", Image Width: " << Input_Image.cols << ", Image Channels: " << Input_Image.channels() << endl;
 
-	double start = GetTickCount();
-	resizeImage(src, dst_cpu, Size(src.cols * 2, src.rows * 2));
-	double  end = GetTickCount();
+	int Histogram_GrayScale[256] = { 0 };
 
-	cout << "cpu cost time£º" << end - start << "\n";
+	Histogram_Calculation_CUDA(Input_Image.data, Input_Image.rows, Input_Image.cols, Input_Image.channels(), Histogram_GrayScale);
 
-	initCUDA();
+	imwrite("Histogram_Image.png", Input_Image);
 
-	Mat dst_gpu;
-
-	start = GetTickCount();
-	resizeImageGpu(src, dst_gpu, Size(src.cols * 2, src.rows * 2));
-	end = GetTickCount();
-	cout << "gpu cost time£º" << end - start << "\n";
-
-	cv::imshow("Zoom", dst_cpu);
-	waitKey(0);
-
+	for (int i = 0; i < 256; i++){
+		cout << "Histogram_GrayScale[" << i << "]: " << Histogram_GrayScale[i] << endl;
+	}
+	system("pause");
 	return 0;
 }
