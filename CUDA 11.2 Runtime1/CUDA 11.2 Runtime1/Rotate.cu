@@ -131,7 +131,7 @@ void rotateImageGpu(const Mat &_src, Mat &_dst, int ind)
 
 int main()
 {
-	Mat src = cv::imread("E:\\123\\test\\lena.bmp", 1);
+	Mat src = cv::imread("1.jpg", 1);
 	Mat dst_cpu;
   Mat map_x(src.size(), CV_32FC1);
   Mat map_y(src.size(), CV_32FC1);
