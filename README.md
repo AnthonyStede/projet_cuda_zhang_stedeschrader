@@ -10,5 +10,5 @@ Microsoft Visual Studio 2017\
 OpenCV 4.5.1
 
 ##Compilation
-Tous les fichiers ont leur main()(séparément), donc pour la compilation il faut sur Solution Explorer et changer leur Properties, et puis choisir Yes dans General Excluded From Build si vous ne voulez pas compiler.
+Tous les fichiers ont leur main()(séparément), donc pour la compilation il faut changer leur Properties sur le Solution Explorer, puis choisir "Yes" dans General Excluded From Build si on ne veux pas compiler.
 
